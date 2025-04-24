@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Database Query Chatbot</title>
+    <!-- Tailwind CSS via CDN -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+      crossorigin="anonymous"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Font Awesome for icons -->
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.js"
+      crossorigin="anonymous"
+      type="text/javascript"
+    ></script>
+  </head>
+  <body class="bg-gray-50 min-h-screen">
+    <style>
+      body {
+        min-height: 100vh;
+        font-family: "Montserrat", "Roboto", sans-serif;
+      }
+      .toast {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        color: white;
+        opacity: 0;
+        transition: opacity 0.3s ease-in-out;
+        z-index: 1000;
+      }
+
+      .toast.success {
+        background-color: #10b981;
+      }
+
+      .toast.error {
+        background-color: #ef4444;
+      }
+
+      .toast.show {
+        opacity: 1;
+      }
+    </style>
+
+    <div class="container mx-auto px-4 py-8">
+      {% block content %}{% endblock %}
+    </div>
+
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

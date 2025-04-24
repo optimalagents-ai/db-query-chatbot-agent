@@ -1,0 +1,1181 @@
+{% extends "base.html" %} {% block content %}
+
+<style>
+  /* Additional custom styles */
+  .message-user {
+    background-color: #f0f9ff;
+    border-left: 4px solid #3b82f6;
+    padding: 1rem;
+    border-radius: 0.5rem;
+  }
+
+  .message-assistant {
+    background-color: #f0fdf4;
+    border-left: 4px solid #10b981;
+    padding: 1rem;
+    border-radius: 0.5rem;
+  }
+
+  .loading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .loading-dots {
+    display: flex;
+  }
+
+  .loading-dots div {
+    width: 8px;
+    height: 8px;
+    margin: 0 4px;
+    border-radius: 50%;
+    background-color: #3b82f6;
+    animation: dot-flashing 1s infinite linear alternate;
+  }
+
+  .loading-dots div:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  .loading-dots div:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+
+  @keyframes dot-flashing {
+    0% {
+      opacity: 0.2;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  .tab-active {
+    background-color: #3b82f6;
+    color: white;
+  }
+
+  .tab-inactive {
+    background-color: #e5e7eb;
+    color: #374151;
+  }
+
+  /* Table styles */
+  .result-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .result-table th {
+    background-color: #f3f4f6;
+    padding: 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid #e5e7eb;
+  }
+
+  .result-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .result-table tr:hover {
+    background-color: #f9fafb;
+  }
+
+  /* Chart container */
+  .chart-container {
+    height: 400px;
+    margin-top: 1rem;
+  }
+
+  /* View type selector */
+  .view-selector {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .view-selector button {
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+  }
+</style>
+<!-- Side Panel for Sessions -->
+<div class="fixed left-0 top-0 h-full w-64 bg-gray-100 shadow-lg p-4">
+  <h2 class="text-xl font-semibold mb-4">Sessions</h2>
+
+  <!-- New Session Button -->
+  <button
+    id="newSessionBtn"
+    class="w-full mb-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+  >
+    New Session
+  </button>
+
+  <!-- Search Past Sessions -->
+  <div class="mb-4">
+    <input
+      type="text"
+      id="sessionSearch"
+      placeholder="Search sessions..."
+      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+    />
+  </div>
+
+  <!-- Sessions List -->
+  <div
+    class="sessions-list space-y-2 max-h-[calc(100vh-200px)] overflow-y-auto"
+  >
+    <div class="text-sm text-gray-600 mb-2">Recent Sessions</div>
+    <div id="sessionsList">
+      <!-- Session items will be populated dynamically -->
+    </div>
+  </div>
+</div>
+
+<!-- Main Content with margin for side panel -->
+<div class="ml-64">
+  <div class="flex justify-between items-center mb-8">
+    <img
+      src="{{ url_for('static', path='img/logo-nobg.png') }}"
+      alt="Logo"
+      class="h-16 ml-8"
+    />
+    <!-- Settings Button -->
+    <!-- Help Button -->
+    <button
+      id="settingsBtn"
+      class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+    >
+      <i class="fa-solid fa-gear h-5 w-5 inline-block mr-2"></i> Database
+    </button>
+
+    <button
+      id="helpBtn"
+      class="px-4 py-2 mr-4 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+    >
+      <i class="fa-solid fa-circle-question h-5 w-5 inline-block mr-2"></i> Help
+    </button>
+
+    <!-- Help Modal -->
+    <div
+      id="helpModal"
+      class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+    >
+      <div
+        class="relative top-10 mx-auto p-6 border w-2/3 shadow-lg rounded-md bg-white"
+      >
+        <button
+          id="closeHelpModal"
+          class="absolute top-4 right-4 text-gray-500 hover:text-gray-700 focus:outline-none"
+        >
+          <i class="fa-solid fa-xmark h-5 w-5"></i>
+        </button>
+        <h3 class="text-2xl font-bold text-green-700 mb-6">How to Use</h3>
+        <div class="space-y-4">
+          <div class="p-4 bg-gray-50 rounded-lg">
+            <h4 class="font-semibold text-lg mb-2">Database Configuration</h4>
+            <p>
+              Click the "Database" button in the top to configure your database
+              connection. This setting will be common across all sessions.
+            </p>
+          </div>
+
+          <div class="p-4 bg-gray-50 rounded-lg">
+            <h4 class="font-semibold text-lg mb-2">Sessions Management</h4>
+            <ul class="list-disc list-inside space-y-2">
+              <li>
+                All your sessions are stored locally in your browser's
+                localStorage
+              </li>
+              <li>
+                Create a new session using the "New Session" button on the left
+                panel
+              </li>
+              <li>
+                Switch between sessions by clicking on them in the sessions list
+              </li>
+              <li>Search for specific sessions using the search bar</li>
+            </ul>
+          </div>
+
+          <div class="p-4 bg-gray-50 rounded-lg">
+            <h4 class="font-semibold text-lg mb-2">Additional Tips</h4>
+            <ul class="list-disc list-inside space-y-2">
+              <li>Sessions are automatically saved as you work</li>
+              <li>Each session maintains its own query history</li>
+              <li>You can name your sessions for better organization</li>
+              <li>
+                Use the search functionality to quickly find past sessions
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Database Settings Modal -->
+  <div
+    id="settingsModal"
+    class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50"
+  >
+    <div
+      class="relative top-10 mx-auto p-2 border w-1/2 shadow-lg rounded-md bg-white"
+    >
+      <div class="mb-3">
+        <button
+          id="closeModal"
+          class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 focus:outline-none"
+        >
+          <i class="fa-solid fa-xmark h-5 w-5"></i>
+        </button>
+        <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">
+          Database Settings
+        </h3>
+        <form
+          id="dbSettingsForm"
+          class="space-y-6 bg-white border border-indigo-200 shadow-xl p-8 rounded-2xl max-w-2xl mx-auto"
+        >
+          <h2 class="text-2xl font-bold text-indigo-800 mb-4">
+            Database Configuration
+          </h2>
+
+          <!-- Database Type -->
+          <!-- Inside #dbSettingsForm just after <h2> -->
+          <div>
+            <label
+              for="dbURL"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >Database URL (optional)</label
+            >
+            <input
+              type="text"
+              id="dbURL"
+              name="dbURL"
+              placeholder="e.g., postgres://user:pass@host:port/dbname"
+              class="w-full rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 bg-white shadow-sm px-4 py-2"
+            />
+            <p class="text-xs text-gray-500 mt-1">
+              If this is filled, individual fields below will be ignored.
+            </p>
+          </div>
+
+          <!-- Wrap the individual fields in a div for easy toggle -->
+          <div
+            id="manualFields"
+            class="space-y-6 transition-opacity duration-300"
+          >
+            <!-- Database Type -->
+            <div>
+              <label
+                for="dbType"
+                class="block text-sm font-medium text-gray-700 mb-1"
+                >Database Type</label
+              >
+              <select
+                id="dbType"
+                name="dbType"
+                class="w-full rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 bg-white shadow-sm px-4 py-2"
+              >
+                <option value="postgresql">PostgreSQL</option>
+                <option value="mysql">MySQL</option>
+                <option value="sqlite">SQLite</option>
+              </select>
+            </div>
+
+            <!-- Database Name -->
+            <div>
+              <label
+                for="dbName"
+                class="block text-sm font-medium text-gray-700 mb-1"
+                >Database Name</label
+              >
+              <input
+                type="text"
+                id="dbName"
+                name="dbName"
+                class="w-full rounded-lg border border-gray-300 focus:border-violet-500 focus:ring-violet-500 bg-white shadow-sm px-4 py-2"
+              />
+            </div>
+
+            <!-- Host -->
+            <div>
+              <label
+                for="dbHost"
+                class="block text-sm font-medium text-gray-700 mb-1"
+                >Host</label
+              >
+              <input
+                type="text"
+                id="dbHost"
+                name="dbHost"
+                class="w-full rounded-lg border border-gray-300 focus:border-purple-500 focus:ring-purple-500 bg-white shadow-sm px-4 py-2"
+              />
+            </div>
+
+            <!-- Port -->
+            <div>
+              <label
+                for="dbPort"
+                class="block text-sm font-medium text-gray-700 mb-1"
+                >Port</label
+              >
+              <input
+                type="number"
+                id="dbPort"
+                name="dbPort"
+                class="w-full rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-blue-500 bg-white shadow-sm px-4 py-2"
+              />
+            </div>
+
+            <!-- Username -->
+            <div>
+              <label
+                for="dbUsername"
+                class="block text-sm font-medium text-gray-700 mb-1"
+                >Username</label
+              >
+              <input
+                type="text"
+                id="dbUsername"
+                name="dbUsername"
+                class="w-full rounded-lg border border-gray-300 focus:border-teal-500 focus:ring-teal-500 bg-white shadow-sm px-4 py-2"
+              />
+            </div>
+
+            <!-- Password -->
+            <div>
+              <label
+                for="dbPassword"
+                class="block text-sm font-medium text-gray-700 mb-1"
+                >Password</label
+              >
+              <input
+                type="password"
+                id="dbPassword"
+                name="dbPassword"
+                class="w-full rounded-lg border border-gray-300 focus:border-pink-500 focus:ring-pink-500 bg-white shadow-sm px-4 py-2"
+              />
+            </div>
+          </div>
+
+          <!-- Buttons -->
+          <div class="flex justify-end space-x-4 pt-6">
+            <button
+              type="button"
+              id="closeSettingsModal"
+              class="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition duration-200 shadow-sm"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              class="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-semibold rounded-lg hover:from-indigo-700 hover:to-blue-700 transition-all duration-200 shadow-lg transform hover:scale-105"
+            >
+              Save
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document
+      .getElementById("settingsBtn")
+      .addEventListener("click", function () {
+        document.getElementById("settingsModal").classList.remove("hidden");
+      });
+
+    document
+      .getElementById("closeSettingsModal")
+      .addEventListener("click", function () {
+        document.getElementById("settingsModal").classList.add("hidden");
+      });
+    document
+      .getElementById("closeModal")
+      .addEventListener("click", function () {
+        document.getElementById("settingsModal").classList.add("hidden");
+      });
+
+    document.getElementById("helpBtn").addEventListener("click", function () {
+      document.getElementById("helpModal").classList.remove("hidden");
+    });
+
+    document
+      .getElementById("closeHelpModal")
+      .addEventListener("click", function () {
+        document.getElementById("helpModal").classList.add("hidden");
+      });
+
+    const dbURLInput = document.getElementById("dbURL");
+    const manualFields = document.getElementById("manualFields");
+
+    dbURLInput.addEventListener("input", () => {
+      const isURLFilled = dbURLInput.value.trim().length > 0;
+
+      // Hide or show manual fields
+      if (isURLFilled) {
+        manualFields.classList.add("opacity-50", "pointer-events-none");
+      } else {
+        manualFields.classList.remove("opacity-50", "pointer-events-none");
+      }
+    });
+  </script>
+  <div class="max-w-5xl mx-auto">
+    <h1 class="text-4xl font-bold mb-4">Database Query Assistant</h1>
+    <p class="text-lg text-gray-600 mb-8">
+      Ask questions from your database in plain English
+    </p>
+
+    <div class="grid grid-cols-1 gap-6">
+      <!-- Chat Interface -->
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex justify-between mb-4">
+          <h2 class="text-xl font-semibold">Chat</h2>
+          <div class="flex space-x-2">
+            <button
+              id="chatTab"
+              class="px-3 py-1 bg-blue-600 text-white rounded-md"
+            >
+              Chat
+            </button>
+            <button
+              id="resultsTab"
+              class="px-3 py-1 bg-gray-200 text-gray-700 rounded-md"
+            >
+              Results
+            </button>
+            <button
+              id="sqlTab"
+              class="px-3 py-1 bg-gray-200 text-gray-700 rounded-md"
+            >
+              SQL
+            </button>
+          </div>
+        </div>
+
+        <!-- Chat Tab Content -->
+        <div id="chatContent" class="space-y-4">
+          <div
+            id="chatMessages"
+            class="space-y-4 max-h-96 overflow-y-auto mb-4"
+          ></div>
+
+          <form id="chatForm" class="flex gap-2">
+            <input
+              id="messageInput"
+              type="text"
+              placeholder="Ask a question about your database..."
+              class="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              type="submit"
+              class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              Send
+            </button>
+          </form>
+        </div>
+
+        <!-- Results Tab Content -->
+        <div id="resultsContent" class="hidden">
+          <div id="queryResults" class="space-y-4">
+            <p class="text-gray-500">
+              No results to display yet. Ask a question first.
+            </p>
+          </div>
+        </div>
+
+        <!-- SQL Tab Content -->
+        <div id="sqlContent" class="hidden">
+          <div class="mb-4 flex justify-between items-center">
+            <h3 class="font-semibold">Generated SQL Query</h3>
+            <button
+              id="copySqlBtn"
+              class="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+            >
+              Copy
+            </button>
+          </div>
+          <pre
+            id="sqlQuery"
+            class="bg-gray-100 p-4 rounded-md overflow-x-auto text-sm"
+          >
+No SQL query generated yet.</pre
+          >
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Elements
+    const chatForm = document.getElementById("chatForm");
+    const messageInput = document.getElementById("messageInput");
+    const chatMessages = document.getElementById("chatMessages");
+    const queryResults = document.getElementById("queryResults");
+    const sqlQuery = document.getElementById("sqlQuery");
+    const copySqlBtn = document.getElementById("copySqlBtn");
+
+    // Tabs
+    const chatTab = document.getElementById("chatTab");
+    const resultsTab = document.getElementById("resultsTab");
+    const sqlTab = document.getElementById("sqlTab");
+    const chatContent = document.getElementById("chatContent");
+    const resultsContent = document.getElementById("resultsContent");
+    const sqlContent = document.getElementById("sqlContent");
+
+    // Session ID (generate a random one for this session)
+    const sessionId = Math.random().toString(36).substring(2, 15);
+    function getCookie(name) {
+      let cookies = document.cookie.split("; ");
+      for (let cookie of cookies) {
+        let [key, value] = cookie.split("=");
+        if (key === name) {
+          return decodeURIComponent(value);
+        }
+      }
+      return null;
+    }
+    // Current state
+    let currentSql = "";
+    let currentResults = null;
+
+    // Tab switching
+    chatTab.addEventListener("click", () => switchTab("chat"));
+    resultsTab.addEventListener("click", () => switchTab("results"));
+    sqlTab.addEventListener("click", () => switchTab("sql"));
+
+    function switchTab(tab) {
+      // Reset all tabs
+      chatTab.className = "px-3 py-1 bg-gray-200 text-gray-700 rounded-md";
+      resultsTab.className = "px-3 py-1 bg-gray-200 text-gray-700 rounded-md";
+      sqlTab.className = "px-3 py-1 bg-gray-200 text-gray-700 rounded-md";
+
+      chatContent.classList.add("hidden");
+      resultsContent.classList.add("hidden");
+      sqlContent.classList.add("hidden");
+
+      // Set active tab
+      if (tab === "chat") {
+        chatTab.className = "px-3 py-1 bg-blue-600 text-white rounded-md";
+        chatContent.classList.remove("hidden");
+      } else if (tab === "results") {
+        resultsTab.className = "px-3 py-1 bg-blue-600 text-white rounded-md";
+        resultsContent.classList.remove("hidden");
+      } else if (tab === "sql") {
+        sqlTab.className = "px-3 py-1 bg-blue-600 text-white rounded-md";
+        sqlContent.classList.remove("hidden");
+      }
+    }
+
+    // Copy SQL to clipboard
+    copySqlBtn.addEventListener("click", () => {
+      if (currentSql) {
+        navigator.clipboard
+          .writeText(currentSql)
+          .then(() => {
+            copySqlBtn.textContent = "Copied!";
+            setTimeout(() => {
+              copySqlBtn.textContent = "Copy";
+            }, 2000);
+          })
+          .catch((err) => {
+            console.error("Failed to copy: ", err);
+          });
+      }
+    });
+
+    const dbSettingsForm = document.getElementById("dbSettingsForm");
+    // Handle database settings form submission
+    dbSettingsForm.addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      // Get form data
+      const formData = new FormData(dbSettingsForm);
+
+      try {
+        // Send settings to server
+        const token = getCookie("accessToken");
+        const url = window.location.href.replace(/\/+$/, "") + "/api/db_update";
+        const response = await fetch(url, {
+          method: "POST",
+          body: formData,
+          headers: {
+            // "Content-Type": "application/x-www-form-urlencoded",
+            "User-Token": token,
+          },
+        });
+
+        const data = await response.json();
+        // console.log(data);
+        // Close modal on success
+        if (data.success) {
+          settingsModal.classList.add("hidden");
+          // Optional: Show success message
+          alert("Database settings updated successfully!");
+        } else {
+          alert(data.message);
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        alert("Failed to update database settings");
+      }
+    });
+
+    // Handle chat form submission
+    chatForm.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      checkSession();
+
+      const message = messageInput.value.trim();
+      if (!message) return;
+
+      // Add user message to chat
+      addMessage("user", message);
+      session.messages.push({ role: "user", message: message });
+
+      // Clear input
+      messageInput.value = "";
+
+      // Add loading indicator
+      const loadingId = addLoadingIndicator();
+
+      try {
+        // Create form data
+        const formData = new FormData();
+        formData.append("message", message);
+        formData.append("session_id", sessionId);
+
+        // Send message to server
+        const token = getCookie("accessToken");
+        const url = window.location.href.replace(/\/+$/, "") + "/api/chat";
+
+        const response = await fetch(url, {
+          method: "POST",
+          body: formData,
+          headers: {
+            // "Content-Type": "application/x-www-form-urlencoded",
+            "User-Token": token,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+
+        const data = await response.json();
+
+        // Remove loading indicator
+        removeLoadingIndicator(loadingId);
+        // console.log(data);
+        // Process response
+        if (data.type === "text") {
+          // Simple text response
+          addMessage("assistant", data.message);
+          session.messages.push({ role: "assistant", message: data.message });
+        } else if (data.type === "results") {
+          // Results with SQL and data
+          const resultData = data.message;
+
+          // Update current state
+          currentSql = resultData.sql;
+          currentResults = resultData.results;
+          // console.log(resultData);
+          // Add message with explanation
+          addMessage("assistant", resultData.message);
+          session.messages.push({
+            role: "assistant",
+            message: resultData.message,
+          });
+          // Update SQL tab
+          sqlQuery.textContent = resultData.sql;
+
+          // Update results tab
+          updateResultsDisplay(resultData.results);
+
+          // Enable tabs
+          resultsTab.disabled = false;
+          sqlTab.disabled = false;
+
+          // Switch to results tab
+          switchTab("results");
+          saveSessions();
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        removeLoadingIndicator(loadingId);
+        addMessage(
+          "assistant",
+          "Sorry, there was an error processing your request."
+        );
+      }
+    });
+
+    // Add a message to the chat
+    function addMessage(role, content) {
+      const messageDiv = document.createElement("div");
+      messageDiv.className =
+        role === "user" ? "message-user" : "message-assistant";
+
+      const roleSpan = document.createElement("p");
+      roleSpan.className = "font-semibold";
+      roleSpan.textContent = role === "user" ? "You" : "Assistant";
+
+      const contentP = document.createElement("p");
+      contentP.textContent = content;
+
+      messageDiv.appendChild(roleSpan);
+      messageDiv.appendChild(contentP);
+
+      chatMessages.appendChild(messageDiv);
+
+      // Scroll to bottom
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // Add loading indicator
+    function addLoadingIndicator() {
+      const id = "loading-" + Date.now();
+      const loadingDiv = document.createElement("div");
+      loadingDiv.id = id;
+      loadingDiv.className = "message-assistant loading";
+
+      const text = document.createElement("span");
+      text.textContent = "Thinking";
+
+      const dots = document.createElement("div");
+      dots.className = "loading-dots";
+
+      for (let i = 0; i < 3; i++) {
+        const dot = document.createElement("div");
+        dots.appendChild(dot);
+      }
+
+      loadingDiv.appendChild(text);
+      loadingDiv.appendChild(dots);
+
+      chatMessages.appendChild(loadingDiv);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+
+      return id;
+    }
+
+    // Remove loading indicator
+    function removeLoadingIndicator(id) {
+      const loadingDiv = document.getElementById(id);
+      if (loadingDiv) {
+        loadingDiv.remove();
+      }
+    }
+
+    // Update results display
+    function updateResultsDisplay(results) {
+      if (!results || results.length === 0) {
+        queryResults.innerHTML =
+          '<p class="text-gray-500">The query did not return any results.</p>';
+        return;
+      }
+
+      // Clear previous results
+      queryResults.innerHTML = "";
+
+      // Create view selector
+      const viewSelector = document.createElement("div");
+      viewSelector.className = "view-selector";
+
+      const tableBtn = document.createElement("button");
+      tableBtn.textContent = "Table";
+      tableBtn.className = "tab-active";
+
+      const chartBtn = document.createElement("button");
+      chartBtn.textContent = "Chart";
+      chartBtn.className = "tab-inactive";
+
+      viewSelector.appendChild(tableBtn);
+      viewSelector.appendChild(chartBtn);
+
+      // Create containers
+      const tableContainer = document.createElement("div");
+      tableContainer.id = "tableView";
+
+      const chartContainer = document.createElement("div");
+      chartContainer.id = "chartView";
+      chartContainer.className = "chart-container hidden";
+
+      // Add to results
+      queryResults.appendChild(viewSelector);
+      queryResults.appendChild(tableContainer);
+      queryResults.appendChild(chartContainer);
+
+      // Create table
+      createResultTable(results, tableContainer);
+
+      // Create chart (if possible)
+      const canCreateChart = createResultChart(results, chartContainer);
+
+      if (!canCreateChart) {
+        chartBtn.disabled = true;
+        chartBtn.className =
+          "px-3 py-1 bg-gray-100 text-gray-400 rounded-md cursor-not-allowed";
+      }
+
+      // View switching
+      tableBtn.addEventListener("click", () => {
+        tableBtn.className = "tab-active";
+        chartBtn.className = "tab-inactive";
+        tableContainer.classList.remove("hidden");
+        chartContainer.classList.add("hidden");
+      });
+
+      chartBtn.addEventListener("click", () => {
+        if (!canCreateChart) return;
+
+        tableBtn.className = "tab-inactive";
+        chartBtn.className = "tab-active";
+        tableContainer.classList.add("hidden");
+        chartContainer.classList.remove("hidden");
+      });
+    }
+
+    // Create result table
+    function createResultTable(results, container) {
+      // Get column names from the first result
+      const columns = Object.keys(results[0]);
+
+      // Create table
+      const table = document.createElement("table");
+      table.className = "result-table";
+
+      // Create header
+      const thead = document.createElement("thead");
+      const headerRow = document.createElement("tr");
+
+      columns.forEach((column) => {
+        const th = document.createElement("th");
+        th.textContent = column;
+        headerRow.appendChild(th);
+      });
+
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      // Create body
+      const tbody = document.createElement("tbody");
+
+      results.forEach((row) => {
+        const tr = document.createElement("tr");
+
+        columns.forEach((column) => {
+          const td = document.createElement("td");
+          td.textContent = row[column] !== null ? row[column] : "NULL";
+          tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+      });
+
+      table.appendChild(tbody);
+      container.appendChild(table);
+    }
+
+    // Create result chart
+    function createResultChart(results, container) {
+      // Get column names from the first result
+      const columns = Object.keys(results[0]);
+
+      // Check if we can create a chart (need at least 2 columns, one for labels and one for values)
+      if (columns.length < 2) {
+        return false;
+      }
+
+      // Try to find numeric columns
+      let labelColumn = columns[0];
+      let valueColumn = null;
+
+      for (let i = 1; i < columns.length; i++) {
+        const column = columns[i];
+        const sampleValue = results[0][column];
+
+        if (
+          typeof sampleValue === "number" ||
+          !isNaN(parseFloat(sampleValue))
+        ) {
+          valueColumn = column;
+          break;
+        }
+      }
+
+      if (!valueColumn) {
+        return false;
+      }
+
+      // Prepare data
+      const labels = results.map((row) => String(row[labelColumn]));
+      const data = results.map((row) => {
+        const value = row[valueColumn];
+        return typeof value === "number" ? value : parseFloat(value) || 0;
+      });
+
+      // Create canvas
+      const canvas = document.createElement("canvas");
+      container.appendChild(canvas);
+
+      // Create chart
+      new Chart(canvas, {
+        type: "bar",
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: valueColumn,
+              data: data,
+              backgroundColor: "rgba(59, 130, 246, 0.5)",
+              borderColor: "rgba(59, 130, 246, 1)",
+              borderWidth: 1,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+            },
+          },
+        },
+      });
+
+      return true;
+    }
+
+    // Session management
+    let sessions = [];
+    let currentSessionId = null;
+    let session = {};
+    // Load sessions from localStorage on page load
+
+    loadSessions();
+    setupEventListeners();
+
+    function loadSessions() {
+      const savedSessions = localStorage.getItem("chatSessions");
+      sessions = savedSessions ? JSON.parse(savedSessions) : [];
+      renderSessions();
+    }
+
+    function saveSessions() {
+      localStorage.setItem("chatSessions", JSON.stringify(sessions));
+    }
+
+    function createNewSession() {
+      session = {
+        id: Math.random().toString(36).substring(2, 15),
+        name: `Session ${sessions.length + 1}`,
+        timestamp: new Date().toISOString(),
+        messages: [],
+      };
+      sessions.unshift(session);
+      currentSessionId = session.id;
+      saveSessions();
+      renderSessions();
+      clearChat();
+    }
+
+    function renderSessions() {
+      const sessionsList = document.getElementById("sessionsList");
+      sessionsList.innerHTML = "";
+
+      sessions.forEach((session) => {
+        const sessionElement = document.createElement("div");
+        sessionElement.className = `session-item p-2 rounded-md cursor-pointer ${
+          session.id === currentSessionId ? "bg-blue-100" : "hover:bg-gray-200"
+        }`;
+        sessionElement.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <span class="font-medium">${session.name}</span>
+                    <div class="flex gap-2">
+                        <button class="rename-session text-blue-500 hover:text-blue-700">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="delete-session text-red-500 hover:text-red-700">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="text-xs text-gray-500">
+                    ${new Date(session.timestamp).toLocaleString()}
+                </div>
+            `;
+
+        sessionElement
+          .querySelector(".rename-session")
+          .addEventListener("click", (e) => {
+            e.stopPropagation();
+            const newName = prompt("Enter new session name:", session.name);
+            if (newName && newName.trim()) {
+              renameSession(session.id, newName.trim());
+            }
+          });
+
+        sessionElement
+          .querySelector(".delete-session")
+          .addEventListener("click", (e) => {
+            e.stopPropagation();
+            deleteSession(session.id);
+          });
+
+        sessionElement.addEventListener("click", () =>
+          switchSession(session.id)
+        );
+        sessionsList.appendChild(sessionElement);
+      });
+    }
+
+    function deleteSession(sessionId) {
+      if (confirm("Are you sure you want to delete this session?")) {
+        sessions = sessions.filter((s) => s.id !== sessionId);
+        if (currentSessionId === sessionId) {
+          currentSessionId = sessions.length > 0 ? sessions[0].id : null;
+          clearChat();
+        }
+        saveSessions();
+        renderSessions();
+      }
+    }
+
+    function switchSession(sessionId) {
+      console.log("Switching to session:", sessionId);
+      currentSessionId = sessionId;
+      session = sessions.find((s) => s.id === sessionId);
+      renderSessions();
+      loadSessionMessages(session);
+    }
+
+    function loadSessionMessages(session) {
+      if (!session) return;
+      console.log("Loading messages for session:", session);
+      clearChat();
+      const chatMessages = document.getElementById("chatMessages");
+      session.messages.forEach((message) => {
+        // Add message to chat display
+        console.log("Adding message:", message);
+        // const messageElement = addMessage(message.role, message.content);
+        addMessage(message.role, message.message);
+        // chatMessages.appendChild(messageElement);
+      });
+    }
+
+    function clearChat() {
+      const chatMessages = document.getElementById("chatMessages");
+      chatMessages.innerHTML = "";
+    }
+
+    function setupEventListeners() {
+      // New Session Button
+      document
+        .getElementById("newSessionBtn")
+        .addEventListener("click", createNewSession);
+
+      // Session Search
+      document
+        .getElementById("sessionSearch")
+        .addEventListener("input", (e) => {
+          const searchTerm = e.target.value.toLowerCase();
+          const filteredSessions = sessions.filter((session) =>
+            session.messages.some(
+              (message) =>
+                message.message &&
+                message.message.toLowerCase().includes(searchTerm)
+            )
+          );
+          renderFilteredSessions(filteredSessions);
+        });
+    }
+
+    function renameSession(sessionId, newName) {
+      const sessionIndex = sessions.findIndex(
+        (session) => session.id === sessionId
+      );
+      if (sessionIndex !== -1) {
+        sessions[sessionIndex].name = newName;
+        localStorage.setItem("chatSessions", JSON.stringify(sessions));
+        renderFilteredSessions(sessions);
+      }
+    }
+
+    function renderFilteredSessions(filteredSessions) {
+      const sessionsList = document.getElementById("sessionsList");
+      sessionsList.innerHTML = "";
+
+      filteredSessions.forEach((session) => {
+        const sessionElement = document.createElement("div");
+        sessionElement.className = `session-item p-2 rounded-md cursor-pointer ${
+          session.id === currentSessionId ? "bg-blue-100" : "hover:bg-gray-200"
+        }`;
+        sessionElement.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <span class="font-medium">${session.name}</span>
+                    <div class="flex gap-2">
+                        <button class="rename-session text-blue-500 hover:text-blue-700">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="delete-session text-red-500 hover:text-red-700">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="text-xs text-gray-500">
+                    ${new Date(session.timestamp).toLocaleString()}
+                </div>
+            `;
+
+        sessionElement
+          .querySelector(".rename-session")
+          .addEventListener("click", (e) => {
+            e.stopPropagation();
+            const newName = prompt("Enter new session name:", session.name);
+            if (newName && newName.trim()) {
+              renameSession(session.id, newName.trim());
+            }
+          });
+
+        sessionElement
+          .querySelector(".delete-session")
+          .addEventListener("click", (e) => {
+            e.stopPropagation();
+            deleteSession(session.id);
+          });
+
+        sessionElement.addEventListener("click", () =>
+          switchSession(session.id)
+        );
+        sessionsList.appendChild(sessionElement);
+      });
+    }
+
+    console.log(session);
+
+    function checkSession() {
+      if (!currentSessionId) {
+        if (sessions.length > 0) {
+          currentSessionId = sessions[0].id;
+        } else {
+          createNewSession();
+        }
+      }
+      renderSessions();
+    }
+    checkSession();
+  });
+</script>
+
+{% endblock %}
