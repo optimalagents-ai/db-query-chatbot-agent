@@ -2,6 +2,8 @@
 
 A natural language interface for querying relational databases through conversation. This AI-powered agent enables users to interact with databases using plain English instead of writing SQL queries directly.
 
+Link - [Agent @ OptimalAgents.ai](https://optimalagents.ai/dashboard/agents/agent/f9e8390d-e1ba-4340-bdb8-61d29eda2211)
+
 ## Features
 
 - Connects to multiple relational database types (PostgreSQL, MySQL, SQLite, etc.)
